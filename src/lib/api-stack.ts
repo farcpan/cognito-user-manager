@@ -39,7 +39,7 @@ export class ApiStack extends Stack {
 		loginLambdaFunction.addToRolePolicy(
 			new PolicyStatement({
 				effect: Effect.ALLOW,
-				actions: ['cognito-idp:initiateAuth'],
+				actions: ['cognito-idp:InitiateAuth', 'cognito-idp:RespondToAuthChallenge'],
 				resources: [props.userPool.userPoolArn],
 			})
 		);
