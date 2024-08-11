@@ -19,7 +19,6 @@ const getPasswordForgotMessage = () => {
 	);
 };
 
-//
 /**
  * アカウント作成時の検証メッセージを取得する
  *

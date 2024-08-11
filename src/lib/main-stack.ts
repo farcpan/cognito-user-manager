@@ -7,6 +7,7 @@ import { ContextParameters } from '../utils/context';
 import { AccountRecovery, OAuthScope, UserPool, UserPoolEmail } from 'aws-cdk-lib/aws-cognito';
 import { Runtime } from 'aws-cdk-lib/aws-lambda';
 import { RetentionDays } from 'aws-cdk-lib/aws-logs';
+import { Effect, PolicyStatement } from 'aws-cdk-lib/aws-iam';
 
 interface MainStackProps extends StackProps {
 	context: ContextParameters;
@@ -16,10 +17,67 @@ export class MainStack extends Stack {
 	constructor(scope: Construct, id: string, props: MainStackProps) {
 		super(scope, id, props);
 
+		// カスタムチャレンジLambdaトリガー用Lambda
+		const customChallengeLambdaPath = join(__dirname, '../authChallengeLambda/index.ts');
+		/// カスタムチャレンジ定義
+		const defineAuthChallengeLambdaName = props.context.getResourceId(
+			'define-auth-challenge-func'
+		);
+		const defineAuthChallengeLambdaFunction = new NodejsFunction(
+			this,
+			defineAuthChallengeLambdaName,
+			{
+				functionName: defineAuthChallengeLambdaName,
+				runtime: Runtime.NODEJS_LATEST,
+				entry: customChallengeLambdaPath,
+				handler: 'defineAuthChallengeHandler',
+				logRetention: RetentionDays.ONE_DAY,
+			}
+		);
+
+		/// カスタムチャレンジ作成
+		const createAuthChallengeLambdaName = props.context.getResourceId(
+			'create-auth-challenge-func'
+		);
+		const createAuthChallengeLambdaFunction = new NodejsFunction(
+			this,
+			createAuthChallengeLambdaName,
+			{
+				functionName: createAuthChallengeLambdaName,
+				runtime: Runtime.NODEJS_LATEST,
+				entry: customChallengeLambdaPath,
+				handler: 'createAuthChallengeHandler',
+				logRetention: RetentionDays.ONE_DAY,
+			}
+		);
+		createAuthChallengeLambdaFunction.addToRolePolicy(
+			new PolicyStatement({
+				effect: Effect.ALLOW,
+				actions: ['ses:SendEmail'],
+				resources: ['*'],
+			})
+		);
+
+		/// カスタムチャレンジ検証
+		const verifyAuthChallengeLambdaName = props.context.getResourceId(
+			'verify-auth-challenge-func'
+		);
+		const verifyAuthChallengeLambdaFunction = new NodejsFunction(
+			this,
+			verifyAuthChallengeLambdaName,
+			{
+				functionName: verifyAuthChallengeLambdaName,
+				runtime: Runtime.NODEJS_LATEST,
+				entry: customChallengeLambdaPath,
+				handler: 'verifyAuthChallengeHandler',
+				logRetention: RetentionDays.ONE_DAY,
+			}
+		);
+
 		// カスタムメッセージLambdaトリガー用Lambda
 		const customMessageLambdaPath = join(__dirname, '../customMessageLambda/index.ts');
 		const customMessageLambdaName = props.context.getResourceId('custom-message-func');
-		const lambdaFunction = new NodejsFunction(this, customMessageLambdaName, {
+		const customMessageLambdaFunction = new NodejsFunction(this, customMessageLambdaName, {
 			functionName: customMessageLambdaName,
 			runtime: Runtime.NODEJS_LATEST,
 			entry: customMessageLambdaPath,
@@ -91,7 +149,10 @@ export class MainStack extends Stack {
 
 			// カスタムメッセージLambdaトリガー
 			lambdaTriggers: {
-				customMessage: lambdaFunction,
+				customMessage: customMessageLambdaFunction,
+				defineAuthChallenge: defineAuthChallengeLambdaFunction,
+				createAuthChallenge: createAuthChallengeLambdaFunction,
+				verifyAuthChallengeResponse: verifyAuthChallengeLambdaFunction,
 			},
 
 			// メールアドレス変更、検証が完了するまでは値を変更しない
@@ -102,7 +163,7 @@ export class MainStack extends Stack {
 
 		// クライアント登録
 		const userPoolClientName = props.context.getResourceId('user-pool-client');
-		const client = userPool.addClient(userPoolClientName, {
+		userPool.addClient(userPoolClientName, {
 			userPoolClientName: userPoolClientName,
 			generateSecret: false,
 			enableTokenRevocation: true,
@@ -110,6 +171,8 @@ export class MainStack extends Stack {
 			authFlows: {
 				// ユーザー名+パスワードによる認証を追加
 				userPassword: true,
+				// カスタムフロー
+				custom: true,
 			},
 			oAuth: {
 				flows: {
