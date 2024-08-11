@@ -93,6 +93,11 @@ export class MainStack extends Stack {
 			lambdaTriggers: {
 				customMessage: lambdaFunction,
 			},
+
+			// メールアドレス変更、検証が完了するまでは値を変更しない
+			keepOriginal: {
+				email: true,
+			},
 		});
 
 		// クライアント登録
