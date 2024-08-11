@@ -4,7 +4,7 @@ import { join } from 'path';
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 
 import { ContextParameters } from '../utils/context';
-import { AccountRecovery, UserPool, UserPoolEmail } from 'aws-cdk-lib/aws-cognito';
+import { AccountRecovery, OAuthScope, UserPool, UserPoolEmail } from 'aws-cdk-lib/aws-cognito';
 import { Runtime } from 'aws-cdk-lib/aws-lambda';
 import { RetentionDays } from 'aws-cdk-lib/aws-logs';
 
@@ -94,6 +94,35 @@ export class MainStack extends Stack {
 			lambdaTriggers: {
 				customMessage: lambdaFunction,
 			},
+		});
+
+		// クライアント登録
+		const userPoolClientName = props.context.getResourceId('user-pool-client');
+		const client = userPool.addClient(userPoolClientName, {
+			userPoolClientName: userPoolClientName,
+			generateSecret: false,
+			enableTokenRevocation: true,
+			preventUserExistenceErrors: true,
+			authFlows: {
+				// ユーザー名+パスワードによる認証を追加
+				userPassword: true,
+			},
+			oAuth: {
+				flows: {
+					authorizationCodeGrant: true,
+					implicitCodeGrant: true,
+				},
+				// Cognito標準UIを使用する場合はコールバック先のURLを指定する
+				// callbackUrls: ['http://localhost:3000'],
+				// Cognito標準UIを使用する場合はログアウト時のコールバック先のURLを指定する
+				// logoutUrls: ['http://localhost:3000/logout'],
+				scopes: [OAuthScope.EMAIL, OAuthScope.PHONE, OAuthScope.OPENID, OAuthScope.PROFILE],
+			},
+
+			// IDトークンの有効期限
+			idTokenValidity: Duration.hours(24),
+			// 更新トークンの有効期限
+			refreshTokenValidity: Duration.days(30),
 		});
 	}
 }
