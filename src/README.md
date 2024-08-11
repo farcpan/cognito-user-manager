@@ -33,11 +33,43 @@ aws cognito-idp confirm-sign-up --client-id <client_id> \
 
 ## サインイン
 
-```
-aws cognito-idp initiate-auth --client-id <client_id> \
---auth-flow USER_PASSWORD_AUTH \
---auth-parameters USERNAME=<mail address>,PASSWORD=<password>
-```
+→ APIを利用する。以下の手順を踏む。
+
+* サインイン
+    * POST: /login
+    * request body:
+        ```json
+        {
+            "username": "email",
+            "password": "password"
+        }
+        ```
+    * response body: 
+        ```json
+        {
+            "session": "session"
+        }
+        ```
+    * 上記を実行するとセッションを取得できる。また、検証コードがメールで配信される
+* サインイン検証
+    * PUT: /login
+    * request body:
+        ```json
+        {
+            "username": "email",
+            "password": "password",
+            "session": "session（POST: /login で取得したsession）",
+            "code": "メールに配信された6桁の検証コード"
+        }
+        ```
+    * response body:
+        ```json
+        {
+            "AccessToken": "access_token",
+            "IdToken": "id_token",
+            "RefreshToken": "refresh_token"
+        }
+        ```
 
 ---
 

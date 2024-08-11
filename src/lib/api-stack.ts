@@ -44,6 +44,28 @@ export class ApiStack extends Stack {
 			})
 		);
 
+		// ログイン検証API
+		const loginVerifyLambdaName = props.context.getResourceId('login-verify-func');
+		const loginVerifyLambdaFunction = new NodejsFunction(this, loginVerifyLambdaName, {
+			functionName: loginVerifyLambdaName,
+			runtime: Runtime.NODEJS_LATEST,
+			entry: lambdaPath,
+			handler: 'loginVerifyHandler',
+			environment: {
+				userPoolId: props.userPool.userPoolId,
+				clientId: props.clientId,
+			},
+			logRetention: RetentionDays.ONE_DAY,
+		});
+
+		loginVerifyLambdaFunction.addToRolePolicy(
+			new PolicyStatement({
+				effect: Effect.ALLOW,
+				actions: ['cognito-idp:InitiateAuth', 'cognito-idp:RespondToAuthChallenge'],
+				resources: [props.userPool.userPoolArn],
+			})
+		);
+
 		/////////////////////////////////////////////////////////////////////////////
 		// APIGateway
 		/////////////////////////////////////////////////////////////////////////////
@@ -64,10 +86,12 @@ export class ApiStack extends Stack {
 		});
 
 		const loginLambdaIntegration = new LambdaIntegration(loginLambdaFunction);
+		const loginVerifyLambdaIntegration = new LambdaIntegration(loginVerifyLambdaFunction);
 
 		const loginResource = restApi.root.addResource('login');
 
 		loginResource.addMethod('POST', loginLambdaIntegration, {});
+		loginResource.addMethod('PUT', loginVerifyLambdaIntegration, {});
 
 		/////////////////////////////////////////////////////////////////////////////
 		// API URL
