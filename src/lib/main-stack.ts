@@ -14,6 +14,9 @@ interface MainStackProps extends StackProps {
 }
 
 export class MainStack extends Stack {
+	public userPool: UserPool;
+	public clientId: string;
+
 	constructor(scope: Construct, id: string, props: MainStackProps) {
 		super(scope, id, props);
 
@@ -87,7 +90,7 @@ export class MainStack extends Stack {
 
 		// Cognito
 		const userPoolName = props.context.getResourceId('user-pool');
-		const userPool = new UserPool(this, userPoolName, {
+		this.userPool = new UserPool(this, userPoolName, {
 			userPoolName: userPoolName,
 
 			// アカウント復元手段
@@ -163,7 +166,7 @@ export class MainStack extends Stack {
 
 		// クライアント登録
 		const userPoolClientName = props.context.getResourceId('user-pool-client');
-		userPool.addClient(userPoolClientName, {
+		const client = this.userPool.addClient(userPoolClientName, {
 			userPoolClientName: userPoolClientName,
 			generateSecret: false,
 			enableTokenRevocation: true,
@@ -191,5 +194,6 @@ export class MainStack extends Stack {
 			// 更新トークンの有効期限
 			refreshTokenValidity: Duration.days(30),
 		});
+		this.clientId = client.userPoolClientId;
 	}
 }

@@ -18,6 +18,13 @@ export const defineAuthChallengeHandler = async (event: any, context: any) => {
 	if (event.request.session.length === 0) {
 		event.response.issueTokens = false;
 		event.response.failAuthentication = false;
+		event.response.challengeName = 'PASSWORD_VERIFIER';
+	} else if (
+		event.request.session[index].challengeName === 'PASSWORD_VERIFIER' &&
+		event.request.session[index].challengeResult === true
+	) {
+		event.response.issueTokens = false;
+		event.response.failAuthentication = false;
 		event.response.challengeName = 'CUSTOM_CHALLENGE';
 	} else if (
 		event.request.session[index].challengeName === 'CUSTOM_CHALLENGE' &&
