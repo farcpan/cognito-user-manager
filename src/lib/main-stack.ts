@@ -77,14 +77,13 @@ export class MainStack extends Stack {
 
 			// ユーザー登録に必要な要素
 			standardAttributes: {
-				email: { required: true },
+				email: { required: true, mutable: true },
 			},
 
 			// ログイン時に利用可能なエイリアス: [!] ユーザープール作成後に変更できない
 			signInAliases: {
-				username: true, // username:trueは必ず指定する必要がある
-				email: true, // メールアドレスもエイリアスとして使用可能とする
-				phone: false,
+				email: true,
+				// username: true, // username:trueは必ず指定する必要がある
 			},
 
 			// ユーザー検証方法のオプション: カスタムメッセージを使用するため設定不要

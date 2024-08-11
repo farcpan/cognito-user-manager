@@ -40,6 +40,24 @@ const getVerificationMessage = () => {
 };
 
 /**
+ * メールアドレス変更時の検証メッセージを取得する
+ *
+ * @returns メールアドレス変更メッセージ
+ */
+const getEmailChangeMessage = () => {
+	return (
+		'<html>' +
+		'<head></head>' +
+		'<body>' +
+		'<p>確認コード: {####} </p>' +
+		'<br/>' +
+		'<p>※有効期限は30分です。ご注意ください。</p>' +
+		'</body>' +
+		'</html>'
+	);
+};
+
+/**
  * Cognitoカスタムメッセージ送信Handler
  *
  * @param event Lambdaイベント
@@ -53,6 +71,9 @@ export const handler = async (event: any, context: any) => {
 	} else if (event.triggerSource === 'CustomMessage_ForgotPassword') {
 		event.response.emailSubject = 'パスワードリセット用検証コード';
 		event.response.emailMessage = getPasswordForgotMessage();
+	} else if (event.triggerSource === 'CustomMessage_UpdateUserAttribute') {
+		event.response.emailSubject = 'メールアドレス変更用検証コード';
+		event.response.emailMessage = getEmailChangeMessage();
 	}
 	return event;
 };
